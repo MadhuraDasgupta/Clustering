@@ -1,0 +1,56 @@
+import pandas as pd
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+df = pd.read_csv('/content/Mall_Customers.csv')
+df.head()
+
+# encoding gender and scaling the features
+le = LabelEncoder()
+df['Gender'] = le.fit_transform(df['Gender'])
+
+X = df[['Gender', 'Age', 'Annual Income (k$)', 'Spending Score (1-100)']]
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# finding out optimal k
+inertia = []
+
+for k in range(1, 11):
+  kmeans =KMeans(n_clusters = k, init = 'k-means++', random_state = 42)
+  kmeans.fit(X_scaled)
+  inertia.append(kmeans.inertia_)
+
+plt.figure(figsize=(8, 5))
+plt.plot(range(1, 11), inertia, marker='o', linestyle='-')
+plt.title('Elbow Method for Optimal k')
+plt.xlabel('Number of Clusters (k)')
+plt.ylabel('Inertia')
+plt.grid(True)
+plt.show()
+
+# finding out optimal k=5
+kmeans = KMeans(n_clusters = 5, init ='k-means++', random_state = 42)
+df['Cluster'] = kmeans.fit_predict(X_scaled)
+df.head()
+
+# cluster profiling
+cluster_summary = df.groupby('Cluster').agg({'Gender': lambda x: x.mode()[0], 'Age': 'mean', 'Annual Income (k$)': 'mean', 'Spending Score (1-100)': 'mean'}).round(2)
+cluster_summary
+
+plt.figure(figsize=(8, 5))
+
+# Age vs Annual Income
+plt.subplot(1, 2, 1)
+sns.scatterplot(x='Age', y='Annual Income (k$)', hue='Cluster', data=df, palette='viridis')
+plt.title('Age vs Income (Clustered)')
+
+# Annual Income vs Spending Score
+plt.subplot(1, 2, 2)
+sns.scatterplot(x='Annual Income (k$)', y='Spending Score (1-100)', hue='Cluster', data=df, palette='viridis')
+plt.title('Income vs Spending Score (Clustered)')
+
+plt.tight_layout()
+plt.show()
